@@ -31,10 +31,14 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http = http.csrf(csrf -> csrf.disable());
+        // inside filterChain(HttpSecurity http)
+        http = http.cors().and().csrf(csrf -> csrf.disable());
+        http = http.sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        http = http
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+//        http = http.csrf(csrf -> csrf.disable());
+//
+//        http = http
+//                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**", "/h2-console/**", "/api/public/**").permitAll()
