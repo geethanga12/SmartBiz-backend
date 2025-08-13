@@ -72,7 +72,8 @@ public class SupplierServiceIMPL implements SupplierService {
     @Override
     public SupplierDto deleteSupplier(Long id) {
         Business business = currentBusiness();
-        Optional<Supplier> byId = supplierRepo.findByIdAndBusiness(id, business);
+        //Optional<Supplier> byId = supplierRepo.findByIdAndBusiness(id, business);
+        Optional<Supplier> byId = supplierRepo.findBySupplierIdAndBusiness(id, business);
 
         if (byId.isPresent()) {
             Supplier s = byId.get();
@@ -94,7 +95,8 @@ public class SupplierServiceIMPL implements SupplierService {
     @Override
     public SupplierDto updateSupplier(SupplierDto dto) {
         Business business = currentBusiness();
-        Optional<Supplier> byId = supplierRepo.findByIdAndBusiness(dto.getId(), business);
+        //Optional<Supplier> byId = supplierRepo.findByIdAndBusiness(dto.getId(), business);
+        Optional<Supplier> byId = supplierRepo.findBySupplierIdAndBusiness(dto.getId(), business);
 
         if (byId.isPresent()) {
             Supplier s = byId.get();
@@ -111,7 +113,10 @@ public class SupplierServiceIMPL implements SupplierService {
     @Override
     public SupplierDto getSupplierById(Long id) {
         Business business = currentBusiness();
-        return supplierRepo.findByIdAndBusiness(id, business).map(this::toDto).orElse(null);
+        //return supplierRepo.findByIdAndBusiness(id, business).map(this::toDto).orElse(null);
+        return supplierRepo.findBySupplierIdAndBusiness(id, business)
+                .map(this::toDto)
+                .orElse(null);
     }
 
     @Override

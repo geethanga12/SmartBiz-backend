@@ -73,7 +73,8 @@ public class CustomerServiceIMPL implements CustomerService {
     @Override
     public CustomerDto deleteCustomer(Long id) {
         Business business = currentBusiness();
-        Optional<Customer> byId = customerRepo.findByIdAndBusiness(id, business);
+        //Optional<Customer> byId = customerRepo.findByIdAndBusiness(id, business);
+        Optional<Customer> byId = customerRepo.findByCustomerIdAndBusiness(id, business);
 
         if (byId.isPresent()) {
             Customer c = byId.get();
@@ -95,7 +96,8 @@ public class CustomerServiceIMPL implements CustomerService {
     @Override
     public CustomerDto updateCustomer(CustomerDto dto) {
         Business business = currentBusiness();
-        Optional<Customer> byId = customerRepo.findByIdAndBusiness(dto.getId(), business);
+        //Optional<Customer> byId = customerRepo.findByIdAndBusiness(dto.getId(), business);
+        Optional<Customer> byId = customerRepo.findByCustomerIdAndBusiness(dto.getId(), business);
 
         if (byId.isPresent()) {
             Customer c = byId.get();
@@ -112,7 +114,10 @@ public class CustomerServiceIMPL implements CustomerService {
     @Override
     public CustomerDto getCustomerById(Long id) {
         Business business = currentBusiness();
-        return customerRepo.findByIdAndBusiness(id, business).map(this::toDto).orElse(null);
+        //return customerRepo.findByIdAndBusiness(id, business).map(this::toDto).orElse(null);
+        return customerRepo.findByCustomerIdAndBusiness(id, business)
+                .map(this::toDto)
+                .orElse(null);
     }
 
     @Override
