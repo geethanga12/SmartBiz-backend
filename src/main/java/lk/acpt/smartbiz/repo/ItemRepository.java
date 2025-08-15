@@ -10,5 +10,5 @@ import java.util.Optional;
 public interface ItemRepository extends JpaRepository<Item, Long> {
     List<Item> findAllByBusiness(Business business);
     Optional<Item> findByItemIdAndBusiness(Long itemId, Business business);
-    Optional<Item> findByItemNameAndBusiness(String name, Business business);
+    Optional<Item> findByNameAndBusiness(String name, Business business);
 }

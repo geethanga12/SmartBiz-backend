@@ -7,8 +7,9 @@ import lombok.*;
 @AllArgsConstructor
 public class ItemDto {
     private Long id;
+    private Long supplierId;
     private String name;
     private String description;
-    private double price;
+    private double unitPrice;
     private int quantity;
 }
