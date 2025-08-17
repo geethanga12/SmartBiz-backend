@@ -11,5 +11,6 @@ public class ItemDto {
     private String name;
     private String description;
     private double unitPrice;
+    private double costPrice; // New
     private int quantity;
 }

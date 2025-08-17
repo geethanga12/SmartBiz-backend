@@ -19,7 +19,7 @@ public class Item {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supplier_id")
-    private Supplier supplier;  // Nullable if supplier not always required
+    private Supplier supplier;
 
     @Column(nullable = false)
     private String name;
@@ -27,7 +27,10 @@ public class Item {
     private String description;
 
     @Column(nullable = false)
-    private double unitPrice;
+    private double unitPrice; // Selling price
+
+    @Column(nullable = false)
+    private double costPrice; // New: Purchase cost for profits
 
     @Column(nullable = false)
     private int quantity;

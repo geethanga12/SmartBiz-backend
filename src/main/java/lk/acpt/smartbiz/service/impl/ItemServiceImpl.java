@@ -52,6 +52,7 @@ public class ItemServiceImpl implements ItemService {
                 i.getName(),
                 i.getDescription(),
                 i.getUnitPrice(),
+                i.getCostPrice(), // New
                 i.getQuantity()
         );
     }
@@ -81,6 +82,7 @@ public class ItemServiceImpl implements ItemService {
                 dto.getName(),
                 dto.getDescription(),
                 dto.getUnitPrice(),
+                dto.getCostPrice(),
                 dto.getQuantity()
         ));
         return toDto(saved);
@@ -118,6 +120,7 @@ public class ItemServiceImpl implements ItemService {
             i.setName(dto.getName());
             i.setDescription(dto.getDescription());
             i.setUnitPrice(dto.getUnitPrice());
+            i.setCostPrice(dto.getCostPrice()); // New
             i.setQuantity(dto.getQuantity());
 
             if (dto.getSupplierId() != null) {
