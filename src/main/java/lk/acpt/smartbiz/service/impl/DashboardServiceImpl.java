@@ -47,21 +47,15 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startDay = now.truncatedTo(ChronoUnit.DAYS);
         LocalDateTime endDay = startDay.plusDays(1);
-
         double sales = orderRepo.getSalesBetweenDates(business, startDay, endDay) != null ? orderRepo.getSalesBetweenDates(business, startDay, endDay) : 0.0;
         double expenses = expenseRepo.getExpensesBetweenDates(business, startDay, endDay) != null ? expenseRepo.getExpensesBetweenDates(business, startDay, endDay) : 0.0;
         double inventoryValue = itemRepo.getInventoryValue(business) != null ? itemRepo.getInventoryValue(business) : 0.0;
 
         // Profits: sales - expenses - costs (costs from today's orders)
         double costs = 0.0;
-        // Query sum(detail.orderItemQuantity * item.costPrice) for today's orders
-        // For simplicity, assume a @Query in OrderDetailRepo
-        // e.g., @Query("SELECT SUM(d.orderItemQuantity * d.item.costPrice) FROM OrderDetail d WHERE d.order.business = ?1 AND d.order.date >= ?2 AND d.order.date < ?3")
-        // double getCostsBetweenDates(Business b, LocalDateTime start, LocalDateTime end);
-        // costs = detailRepo.getCostsBetweenDates(business, startDay, endDay) != null ? ... : 0.0;
+        costs = detailRepo.getCostsBetweenDates(business, startDay, endDay) != null ? detailRepo.getCostsBetweenDates(business, startDay, endDay) : 0.0;
 
         double profits = sales - expenses - costs;
-
         Map<String, Object> overview = new HashMap<>();
         overview.put("sales", sales);
         overview.put("inventoryValue", inventoryValue);
