@@ -5,12 +5,18 @@ import lk.acpt.smartbiz.dto.OrderDto;
 import lk.acpt.smartbiz.entity.*;
 import lk.acpt.smartbiz.repo.*;
 import lk.acpt.smartbiz.service.OrderService;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -136,4 +142,74 @@ public class OrderServiceImpl implements OrderService {
         Business business = currentBusiness();
         return orderRepo.findAllByBusiness(business).stream().map(this::toDto).collect(Collectors.toList());
     }
+
+    @Override
+    public byte[] generateInvoicePdf(Long orderId) {
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+
+        // Build a simple invoice PDF with PDFBox (similar to ReportsServiceImpl)
+        try (PDDocument doc = new PDDocument(); ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            PDPage page = new PDPage(PDRectangle.LETTER);
+            doc.addPage(page);
+            PDPageContentStream cs = new PDPageContentStream(doc, page);
+
+            float margin = 50;
+            float y = page.getMediaBox().getHeight() - margin;
+            float leading = 14f;
+
+            cs.beginText();
+            cs.setFont(PDType1Font.HELVETICA_BOLD, 16);
+            cs.newLineAtOffset(margin, y);
+            cs.showText("INVOICE #" + order.getOrderId());
+            cs.endText();
+            y -= leading * 1.5;
+
+            cs.beginText();
+            cs.setFont(PDType1Font.HELVETICA, 11);
+            cs.newLineAtOffset(margin, y);
+            cs.showText("Date: " + order.getDate().toLocalDate().toString());
+            cs.endText();
+            y -= leading;
+
+            cs.beginText();
+            cs.newLineAtOffset(margin, y);
+            cs.showText("Customer: " + (order.getCustomer() != null ? order.getCustomer().getCustomerName() : "N/A"));
+            cs.endText();
+            y -= leading * 1.5;
+
+            // Table-like list of items
+            cs.setFont(PDType1Font.HELVETICA, 10);
+            cs.beginText();
+            cs.newLineAtOffset(margin, y);
+            cs.showText(String.format("%-20s %-8s %-10s %-10s", "Item", "Qty", "Unit", "Subtotal"));
+            cs.endText();
+            y -= leading;
+
+            for (OrderDetail d : order.getDetails()) {
+                if (y < 80) { cs.close(); page = new PDPage(PDRectangle.LETTER); doc.addPage(page); cs = new PDPageContentStream(doc, page); y = page.getMediaBox().getHeight() - margin; }
+                String itemName = d.getItem() != null ? d.getItem().getName() : ("#"+d.getItem());
+                String line = String.format("%-20s %-8d %-10.2f %-10.2f", itemName, d.getOrderItemQuantity(), d.getPrice(), d.getOrderItemQuantity() * d.getPrice());
+                cs.beginText();
+                cs.newLineAtOffset(margin, y);
+                cs.showText(line);
+                cs.endText();
+                y -= leading;
+            }
+
+            y -= leading;
+            cs.beginText();
+            cs.newLineAtOffset(margin, y);
+            cs.setFont(PDType1Font.HELVETICA_BOLD, 12);
+            cs.showText("Total: " + String.format("%.2f", order.getAmount()));
+            cs.endText();
+            cs.close();
+
+            doc.save(baos);
+            return baos.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate invoice PDF: " + e.getMessage(), e);
+        }
+    }
+
 }

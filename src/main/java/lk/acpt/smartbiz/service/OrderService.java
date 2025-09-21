@@ -11,4 +11,7 @@ public interface OrderService {
     OrderDto getOrderById(Long id);
     List<OrderDto> getAllOrders();
     // More if needed
+    // add to OrderService interface
+    byte[] generateInvoicePdf(Long orderId);
+
 }
