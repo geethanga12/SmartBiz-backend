@@ -1,6 +1,10 @@
 package lk.acpt.smartbiz.controller;
 
 import lk.acpt.smartbiz.dto.*;
+import lk.acpt.smartbiz.entity.Business;
+import lk.acpt.smartbiz.entity.User;
+import lk.acpt.smartbiz.repo.BusinessRepository;
+import lk.acpt.smartbiz.repo.UserRepository;
 import lk.acpt.smartbiz.service.AIService;
 import lk.acpt.smartbiz.service.AdminService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +28,50 @@ public class AIController {
 
     @Autowired
     private AdminService adminService;
+
+    @Autowired
+    private UserRepository userRepo;
+
+    @Autowired
+    private BusinessRepository businessRepo;
+
+    // NEW: Get available AI features for current user's subscription
+    @GetMapping("/features")
+    public ResponseEntity<Map<String, Object>> getAvailableFeatures(Authentication auth) {
+        try {
+            User user = userRepo.findByEmail(auth.getName())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            Business business = businessRepo.findByOwner(user)
+                    .orElseThrow(() -> new RuntimeException("Business not found"));
+
+            Map<String, Object> features = new HashMap<>();
+            features.put("AI_EMAIL", true); // All plans have this
+            features.put("AI_INSIGHTS", business.hasFeature("AI_INSIGHTS"));
+            features.put("AI_MARKETING", business.hasFeature("AI_MARKETING"));
+            features.put("AI_INVOICE_SUMMARY", business.hasFeature("AI_INVOICE_SUMMARY"));
+
+            // Plan information
+            Map<String, Object> planInfo = new HashMap<>();
+            if (business.getSubscriptionPlan() != null) {
+                planInfo.put("planName", business.getSubscriptionPlan().getPlanName());
+                planInfo.put("hasAiFeatures", business.getSubscriptionPlan().isAiFeatures());
+                planInfo.put("monthlyPrice", business.getSubscriptionPlan().getMonthlyPrice());
+            } else {
+                planInfo.put("planName", "No Plan");
+                planInfo.put("hasAiFeatures", false);
+                planInfo.put("monthlyPrice", 0.0);
+            }
+
+            features.put("planInfo", planInfo);
+            features.put("businessId", business.getBusinessId());
+
+            return ResponseEntity.ok(features);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
 
     @PostMapping("/request")
     public ResponseEntity<AIResponseDto> processAIRequest(@RequestBody AIRequestDto request,

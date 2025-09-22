@@ -17,4 +17,13 @@ public class BusinessResponse {
     private String address;
     private String status;
     private LocalDateTime registerDate;
+
+    // UPDATED: Added subscription plan information
+    private Long subscriptionPlanId;
+    private String subscriptionPlanName;
+    private Double subscriptionPlanPrice;
+    private Boolean hasAiFeatures;
+    private Integer maxUsers;
+    private Integer maxProducts;
+    private Integer maxOrders;
 }
