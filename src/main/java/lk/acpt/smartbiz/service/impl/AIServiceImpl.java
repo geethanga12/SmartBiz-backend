@@ -55,6 +55,16 @@ public class AIServiceImpl implements AIService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
+    // UPDATED: Added feature access validation
+    private void validateFeatureAccess(Business business, String feature) {
+        if (!business.hasFeature(feature)) {
+            String planName = business.getSubscriptionPlan() != null ?
+                    business.getSubscriptionPlan().getPlanName() : "No Plan";
+            throw new RuntimeException("Access denied: '" + feature + "' feature is not available in your current plan (" +
+                    planName + "). Please upgrade your subscription to access this feature.");
+        }
+    }
+
     private void logAIUsage(String requestType, String prompt, String response,
                             int tokensUsed, boolean successful, String errorMessage,
                             Business business, User user) {
@@ -77,6 +87,10 @@ public class AIServiceImpl implements AIService {
         try {
             Business business = getCurrentBusiness(userEmail);
             User user = getCurrentUser(userEmail);
+
+            // UPDATED: Validate feature access based on subscription plan
+            String featureToCheck = mapRequestTypeToFeature(request.getType());
+            validateFeatureAccess(business, featureToCheck);
 
             String response = null;
             switch (request.getType().toUpperCase()) {
@@ -104,21 +118,26 @@ public class AIServiceImpl implements AIService {
             return new AIResponseDto(true, response, request.getType(), tokensUsed, null);
 
         } catch (Exception e) {
-            Business business = getCurrentBusiness(userEmail);
-            User user = getCurrentUser(userEmail);
-            logAIUsage(request.getType(), request.getPrompt(), null, 0, false, e.getMessage(), business, user);
+            try {
+                Business business = getCurrentBusiness(userEmail);
+                User user = getCurrentUser(userEmail);
+                logAIUsage(request.getType(), request.getPrompt(), null, 0, false, e.getMessage(), business, user);
+            } catch (Exception ignored) {
+                // If we can't log, continue with the original error
+            }
             return new AIResponseDto(false, null, request.getType(), 0, e.getMessage());
         }
     }
 
-    // UPDATED: Improved business insights with concise, actionable responses
+    // UPDATED: Enhanced business insights with subscription validation
     @Override
     public BusinessInsightDto generateBusinessInsights(String question, String userEmail) {
         try {
             Business business = getCurrentBusiness(userEmail);
+            validateFeatureAccess(business, "AI_INSIGHTS");
+
             String businessContext = buildBusinessContext(business);
 
-            // UPDATED: More focused prompt for concise responses
             String prompt = String.format(
                     "You are a business analyst for %s. Answer this question concisely in 2-3 paragraphs: %s\n\n" +
                             "Business Data:\n%s\n\n" +
@@ -128,8 +147,6 @@ public class AIServiceImpl implements AIService {
             );
 
             String answer = geminiClient.generateContent(prompt);
-
-            // UPDATED: Clean up the response format
             answer = formatBusinessInsightResponse(answer);
 
             Map<String, Object> data = buildBusinessDataMap(business);
@@ -141,11 +158,11 @@ public class AIServiceImpl implements AIService {
         }
     }
 
-    // UPDATED: Improved email generation with better formatting
     @Override
     public EmailTemplateDto generateEmail(String type, String context, String userEmail) {
         try {
             Business business = getCurrentBusiness(userEmail);
+            validateFeatureAccess(business, "AI_EMAIL"); // All plans have this
 
             String prompt = String.format(
                     "Generate a professional email for %s business. " +
@@ -169,11 +186,11 @@ public class AIServiceImpl implements AIService {
         }
     }
 
-    // UPDATED: Improved marketing post generation
     @Override
     public String generateMarketingPost(String productInfo, String promotion, String userEmail) {
         try {
             Business business = getCurrentBusiness(userEmail);
+            validateFeatureAccess(business, "AI_MARKETING");
 
             String prompt = String.format(
                     "Create a catchy social media post for %s. " +
@@ -184,8 +201,6 @@ public class AIServiceImpl implements AIService {
             );
 
             String content = geminiClient.generateContent(prompt);
-
-            // UPDATED: Clean up the response to remove any extra formatting
             return content.trim();
 
         } catch (Exception e) {
@@ -193,11 +208,12 @@ public class AIServiceImpl implements AIService {
         }
     }
 
-    // UPDATED: Improved invoice summary generation
     @Override
     public String generateInvoiceSummary(Long orderId, String userEmail) {
         try {
             Business business = getCurrentBusiness(userEmail);
+            validateFeatureAccess(business, "AI_INVOICE_SUMMARY");
+
             Order order = orderRepo.findById(orderId)
                     .filter(o -> o.getBusiness().equals(business))
                     .orElseThrow(() -> new RuntimeException("Order not found"));
@@ -229,7 +245,22 @@ public class AIServiceImpl implements AIService {
         }
     }
 
-    // UPDATED: More concise business context building
+    // UPDATED: Map request types to features for validation
+    private String mapRequestTypeToFeature(String requestType) {
+        switch (requestType.toUpperCase()) {
+            case "EMAIL_GENERATOR":
+                return "AI_EMAIL";
+            case "BUSINESS_INSIGHTS":
+                return "AI_INSIGHTS";
+            case "MARKETING_POST":
+                return "AI_MARKETING";
+            case "INVOICE_SUMMARY":
+                return "AI_INVOICE_SUMMARY";
+            default:
+                return "ADVANCED_AI";
+        }
+    }
+
     private String buildBusinessContext(Business business) {
         StringBuilder context = new StringBuilder();
 
@@ -282,7 +313,6 @@ public class AIServiceImpl implements AIService {
         return context.toString();
     }
 
-    // UPDATED: Build comprehensive business data map
     private Map<String, Object> buildBusinessDataMap(Business business) {
         Map<String, Object> data = new HashMap<>();
 
@@ -300,7 +330,7 @@ public class AIServiceImpl implements AIService {
             data.put("inventoryValue", items.stream().mapToDouble(item ->
                     item.getQuantity() * item.getUnitPrice()).sum());
 
-            // UPDATED: Add recent activity data
+            // Add recent activity data
             LocalDateTime lastMonth = LocalDateTime.now().minusMonths(1);
             long recentOrders = orders.stream()
                     .filter(o -> o.getDate().isAfter(lastMonth))
@@ -314,7 +344,6 @@ public class AIServiceImpl implements AIService {
         return data;
     }
 
-    // NEW: Helper method to format business insight responses
     private String formatBusinessInsightResponse(String response) {
         // Remove excessive asterisks, formatting, and long explanations
         String cleaned = response.replaceAll("\\*\\*([^*]+)\\*\\*", "$1"); // Remove bold formatting
